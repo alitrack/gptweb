@@ -23,10 +23,3 @@ module.exports = async function  openAIProxy(req, res, next) {
     }
     return createProxyMiddleware(options)(req, res, next);
   }
-
-// export const config = {
-//     api: {
-//         bodyParser: false, // enable POST requests
-//         externalResolver: true, // hide warning message
-//     },
-// };
