@@ -8,7 +8,7 @@
 - 支持网站密码
 - API Key支持设置到环境变量里或前端
 
-本项目主要为了方便Vercel部署， index.html 来自 **[chatgpt-web](https://github.com/xqdoo00o/chatgpt-web)**， 因此如果你想使用静态页面版本，请访问**[chatgpt-web](https://github.com/xqdoo00o/chatgpt-web)**。
+本项目主要为了方便Vercel部署， index.html 来自 **[chatgpt-web](https://github.com/xqdoo00o/chatgpt-web)**， 因此如果你想使用静态页面版本，请访问 **[chatgpt-web](https://github.com/xqdoo00o/chatgpt-web)**。
 
 支持复制，刷新，语音输入，朗读等功能，以及众多[自定义选项](#自定义选项)。
 
