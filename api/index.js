@@ -1,4 +1,5 @@
 const { createProxyMiddleware } = require("http-proxy-middleware");
+
 // Set up a proxy to forward requests to the OpenAI API endpoint
 
 // To use the OpenAI API, you will need an API key that can be set as an environment variable (OPENAI_API_KEY) 
@@ -6,6 +7,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 module.exports = async function  openAIProxy(req, res, next) {
   let target = '';
   let openApiKey = process.env.OPENAI_API_KEY || '';
+  console.debug(req);
   const options = {
       target:  "https://api.openai.com",
       changeOrigin: true,

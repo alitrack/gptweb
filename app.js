@@ -2,11 +2,22 @@
 const express = require('express'); // Express framework
 const path = require('path'); // Node.js path module
 const bodyParser = require('body-parser'); // Body parsing middleware
-
+const basicAuth = require('express-basic-auth')
 const openAIProxy = require('./api/index')
-
 // Create an instance of the Express application
 const app = express();
+
+
+
+const auth_password = process.env.SITE_PASSWORD || '';
+// 使用基本身份验证中间件
+if (auth_password !== '') {
+  app.use(basicAuth({
+    users: { 'admin' : auth_password },
+    challenge: true,
+    realm: 'GPT Web',
+  }))
+}
 
 // Set the port number for the application to listen on
 const port = process.env.PORT || 9000;

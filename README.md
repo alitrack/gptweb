@@ -1,9 +1,14 @@
 # gpt web
-Pure Javascript ChatGPT demo based on nginx with OpenAI API (gpt-3.5-turbo)
 
-纯JS实现的ChatGPT项目，基于nginx和OpenAI gpt-3.5-turbo API.
+## 介绍
 
-部署一个HTML文件，配合nginx反代即可使用。
+- 方便Vercel部署的基于OpenAI API Key的Web客户端
+- 省去反代与IP限制
+- 同时本API可以做反代使用
+- 支持网站密码
+- API Key支持设置到环境变量里或前端
+
+本项目主要为了方便Vercel部署， index.html 来自 **[chatgpt-web](https://github.com/xqdoo00o/chatgpt-web)**， 因此如果你想使用静态页面版本，请访问**[chatgpt-web](https://github.com/xqdoo00o/chatgpt-web)**。
 
 支持复制，刷新，语音输入，朗读等功能，以及众多[自定义选项](#自定义选项)。
 
@@ -16,69 +21,21 @@ Pure Javascript ChatGPT demo based on nginx with OpenAI API (gpt-3.5-turbo)
 [markdown-it-texmath](https://github.com/goessner/markdown-it-texmath), 
 [awesome-chatgpt-prompts-zh](https://github.com/PlexPt/awesome-chatgpt-prompts-zh)
 
-![示例](https://github.com/xqdoo00o/chatgpt-web/blob/main/example.png)
+![示例](https://github.com/xqdoo00o/chatgpt-web/blob/master/example.png)
+
+## Deploy With Vercel（部署到Vercel)
+
+[![Deploy with Vercel](https://camo.githubusercontent.com/5e471e99e8e022cf454693e38ec843036ec6301e27ee1e1fa10325b1cb720584/68747470733a2f2f76657263656c2e636f6d2f627574746f6e)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Falitrack%2Fgptweb&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys)
+
+> 可根据需要设置网站访问密码：[`SITE_PASSWORD`](https://github.com/alitrack/gptweb#environment-variables)
+> 
+> [![Deploy with Vercel](https://camo.githubusercontent.com/5e471e99e8e022cf454693e38ec843036ec6301e27ee1e1fa10325b1cb720584/68747470733a2f2f76657263656c2e636f6d2f627574746f6e)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Falitrack%2Fgptweb&env=OPENAI_API_KEY&env=SITE_PASSWORD&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys)
+>
 
 ## Demo
 
-[在线预览](https://xqdoo00o.github.io/chatgpt-web/) （使用需配置自定义API key，可正常访问`api.openai.com`）
+[在线预览](https://gptweb-theta.vercel.app/) （使用需配置自定义API key）
 
-## 使用方法
-### **注意：服务器需要正常访问`api.openai.com`**
-1. 配合nginx使用, 示例配置如下
-```
-server {
-    listen       80;
-    server_name  example.com;
-    #开启openai接口的gzip压缩，大量重复文本的压缩率高，节省服务端流量
-    gzip  on;
-    gzip_min_length 1k;
-    gzip_types text/event-stream;
-
-    #如需部署在网站子路径，如"example.com/chatgpt"，配置如下
-    #location ^~ /chatgpt/v1 {
-    location ^~ /v1 {
-        proxy_pass https://api.openai.com/v1;
-        proxy_set_header Host api.openai.com;
-        #注意Bearer 后改为正确的token。如需用户自定义API key，可注释掉下一行
-        proxy_set_header  Authorization "Bearer sk-your-token";
-        proxy_pass_header Authorization;
-        #流式传输，不关闭buffering缓存会卡顿卡死，必须配置！！！
-        proxy_buffering off;
-    }
-    #与上面反代接口的路径保持一致
-    #location /chatgpt {
-    location / {
-        alias /usr/share/nginx/html/;
-        index index.html;
-    }
-}
-```
-
-如服务器无法正常访问`api.openai.com`, 可配合socat反代和http代理使用，proxy_pass配置改成
-```
-    proxy_pass https://127.0.0.1:8443/v1;
-```
-并打开socat
-```
-socat TCP4-LISTEN:8443,reuseaddr,fork PROXY:http代理地址:api.openai.com:443,proxyport=http代理端口
-```
-
-2. 配合Caddy使用，可以自动生产HTTPS证书
-```
-yourdomain.example.com {
-	reverse_proxy /v1/* https://api.openai.com {
-		header_up Host api.openai.com
-		header_up Authorization "{http.request.header.Authorization}"
-		header_up Authorization "Bearer sk-your-token"
-	}
-
-	file_server / {
-		root /var/wwwroot/chatgpt-web
-		index index.html
-	}
-}
-
-```
 
 ## 自定义选项
 
@@ -113,3 +70,12 @@ yourdomain.example.com {
 15. 支持语音输入，默认识别为普通话，可长按语音按钮修改识别选项。如浏览器不支持语音输入，则不显示语音按钮（HTTPS+Edge浏览器体验最佳）。如点击语音按钮没反应，则未允许麦克风权限，或者没安装麦克风设备。
 
 16. 左边栏支持功能，新建会话，重命名，删除会话。导出所有会话，导入会话文件，清空所有会话。
+
+## Environment Variables
+
+You can control the website through environment variables.
+
+| Name | Description | Default |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | 你的OPENAI API Key | `null` |
+| `SITE_PASSWORD` | 网站密码. 如果不设置，任何人可以访问 | `null` |

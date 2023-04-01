@@ -1143,6 +1143,12 @@
             height: 32px;
             width: 64px;
         }
+
+        #preSetSystem {
+            height: 20px;
+            line-height: 20px;
+            vertical-align: top;
+        }
     </style>
 </head>
 
@@ -1296,7 +1302,7 @@
                 </div>
                 <div class="divider"></div>
                 <div class="links">
-                    <a href="https://github.com/xqdoo00o/chatgpt-web" target="_blank"
+                    <a href="https://github.com/alitrack/gptweb" target="_blank"
                         rel="noopener noreferrer">Github</a>
                 </div>
             </div>
@@ -1330,6 +1336,10 @@
                             <option value="gpt-4">gpt-4</option>
                             <option value="gpt-4-32k">gpt-4-32k</option>
                         </select>
+                    </div>
+                    <div>
+                        <div>自定义接口</div>
+                        <input class="inputTextClass" placeholder="https://example.com/" id="apiHostInput" />
                     </div>
                     <div>
                         <div>自定义API key</div>
@@ -1482,7 +1492,7 @@
                     </div>
                 </div>
                 <div id="recOption" style="display: none;">
-                    <div id="noRecTip" style="display: block;">当前浏览器不支持语言识别，请尝试更换浏览器或重新部署页面。</div>
+                    <div id="noRecTip" style="display: block;">当前环境不支持语音识别，请尝试使用chrome内核浏览器或重新部署https页面。</div>
                     <div id="yesRec" style="display: none;">
                         <div class="presetSelect presetModelCls">
                             <label for="selectLangOption">语言</label>
@@ -1551,7 +1561,7 @@
                 {
                     type: 'error',
                     background: '#e15b64',
-                    duration: 2000,
+                    duration: 3000,
                 }
             ]
         });
@@ -1596,11 +1606,13 @@
         let recing = false;
         let toggleRecEv;
         textarea.focus();
-        const textInputEvent = (e) => {
-            if (textarea.value.trim().length) {
-                sendBtnEle.classList.add("activeSendBtn");
-            } else {
-                sendBtnEle.classList.remove("activeSendBtn");
+        const textInputEvent = () => {
+            if (!loading) {
+                if (textarea.value.trim().length) {
+                    sendBtnEle.classList.add("activeSendBtn");
+                } else {
+                    sendBtnEle.classList.remove("activeSendBtn");
+                }
             }
             textarea.style.height = "47px";
             textarea.style.height = textarea.scrollHeight + "px";
@@ -2267,7 +2279,7 @@
     <script src="//npm.elemecdn.com/markdown-it-texmath@1.0.0/texmath.js"></script>
     <script src="//npm.elemecdn.com/markdown-it-link-attributes@4.0.1/dist/markdown-it-link-attributes.min.js"></script>
     <script>
-        const API_URL = "/v1/chat/completions";
+        const API_URL = "v1/chat/completions";
         let loading = false;
         let presetRoleData = {
             "normal": "你是一个乐于助人的助手，尽量简明扼要地回答",
@@ -2276,10 +2288,11 @@
             "image": "当你需要发送图片的时候，请用 markdown 语言生成，不要反斜线，不要代码框，需要使用 unsplash API时，遵循一下格式， https://source.unsplash.com/960x640/? ＜英文关键词＞"
         };
         let modelVersion; // 模型版本
+        let apiHost; // api反代地址
+        let customAPIKey; // 自定义apiKey
         let systemRole; // 自定义系统角色
         let roleNature; // 角色性格
         let roleTemp; // 回答质量
-        let customAPIKey; // 自定义apiKey
         let enableCont; // 是否开启连续对话，默认开启，对话包含上下文信息。
         let enableLongReply; // 是否开启长回复，默认关闭，开启可能导致api费用增加。
         let longReplyFlag;
@@ -2714,6 +2727,17 @@
                 localStorage.setItem("modelVersion", modelVersion);
             }
             modelEle.dispatchEvent(new Event("change"));
+            const apiHostEle = document.getElementById("apiHostInput");
+            let localApiHost = localStorage.getItem("APIHost");
+            if (localApiHost) {
+                apiHost = localApiHost;
+                apiHostEle.value = localApiHost;
+            }
+            apiHostEle.onchange = () => {
+                apiHost = apiHostEle.value;
+                localStorage.setItem("APIHost", apiHost);
+            }
+            apiHostEle.dispatchEvent(new Event("change"));
             const keyEle = document.getElementById("keyInput");
             let localKey = localStorage.getItem("APIKey");
             if (localKey) {
@@ -3357,105 +3381,115 @@
                 dataSlice = [data[idx - 1]];
                 if (systemRole) {dataSlice.unshift(data[0]);}
             }
-            const res = await fetch(API_URL, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
-                    messages: dataSlice,
-                    model: modelVersion,
-                    stream: true,
-                    temperature: roleTemp,
-                    top_p: roleNature
-                }),
-                signal: controller.signal
-            });
-            clearTimeout(controllerId);
-            controllerId = void 0;
-            if (res.status !== 200) {
-                if (res.status === 401) {
-                    notyf.error("API key错误或已失效，请打开设置输入正确的API key！")
-                } else if (res.status === 400) {
-                    notyf.error("请求内容过大，请删除部分对话或打开设置关闭连续对话！");
-                } else if (res.status === 404) {
-                    notyf.error("无权使用此模型，请打开设置选择其他GPT模型！");
-                } else {
-                    notyf.error("触发API调用频率限制，请稍后重试！");
+            try {
+                const res = await fetch(apiHost + API_URL, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                        messages: dataSlice,
+                        model: modelVersion,
+                        stream: true,
+                        temperature: roleTemp,
+                        top_p: roleNature
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(controllerId);
+                controllerId = void 0;
+                if (res.status !== 200) {
+                    if (res.status === 401) {
+                        notyf.error("API key错误，请打开设置输入正确的API key！")
+                    } else if (res.status === 400) {
+                        notyf.error("请求内容过大，请删除部分对话或打开设置关闭连续对话！");
+                    } else if (res.status === 404) {
+                        notyf.error("无权使用此模型，请打开设置选择其他GPT模型！");
+                    } else if (res.status === 429 && !res.statusText) {
+                        notyf.error("API使用超出限额，请检查您的账单！");
+                    } else {
+                        notyf.error("触发API调用频率限制，请稍后重试！");
+                    }
+                    stopLoading();
+                    return;
                 }
-                stopLoading();
-                return;
-            }
-            const decoder = new TextDecoder();
-            const reader = res.body.getReader();
-            const readChunk = async () => {
-                return reader.read().then(async ({value, done}) => {
-                    if (!done) {
-                        value = decoder.decode(value);
-                        let chunks = value.split(/\n{2}/g);
-                        chunks = chunks.filter(item => {
-                            return item.trim();
-                        });
-                        for (let i = 0; i < chunks.length; i++) {
-                            let chunk = chunks[i];
-                            if (chunk) {
-                                let payload;
-                                try {
-                                    payload = JSON.parse(chunk.slice(6));
-                                } catch (e) {
-                                    break;
-                                }
-                                if (payload.choices[0].finish_reason) {
-                                    let lenStop = payload.choices[0].finish_reason === "length";
-                                    let longReplyFlag = enableLongReply && lenStop;
-                                    if (!enableLongReply && lenStop) {currentResEle.children[1].children[0].className = "halfRefReq"}
-                                    else {currentResEle.children[1].children[0].className = "refreshReq"};
-                                    if (existVoice && enableAutoVoice && currentVoiceIdx === autoVoiceDataIdx) {
-                                        let voiceText = longReplyFlag ? "" : progressData.slice(autoVoiceIdx), stop = !longReplyFlag;
-                                        autoSpeechEvent(voiceText, currentResEle, false, stop);
+                const decoder = new TextDecoder();
+                const reader = res.body.getReader();
+                const readChunk = async () => {
+                    return reader.read().then(async ({value, done}) => {
+                        if (!done) {
+                            value = decoder.decode(value);
+                            let chunks = value.split(/\n{2}/g);
+                            chunks = chunks.filter(item => {
+                                return item.trim();
+                            });
+                            for (let i = 0; i < chunks.length; i++) {
+                                let chunk = chunks[i];
+                                if (chunk) {
+                                    let payload;
+                                    try {
+                                        payload = JSON.parse(chunk.slice(6));
+                                    } catch (e) {
+                                        break;
                                     }
-                                    break;
-                                } else {
-                                    let content = payload.choices[0].delta.content;
-                                    if (content) {
-                                        if (!progressData && !content.trim()) continue;
+                                    if (payload.choices[0].finish_reason) {
+                                        let lenStop = payload.choices[0].finish_reason === "length";
+                                        let longReplyFlag = enableLongReply && lenStop;
+                                        if (!enableLongReply && lenStop) {currentResEle.children[1].children[0].className = "halfRefReq"}
+                                        else {currentResEle.children[1].children[0].className = "refreshReq"};
                                         if (existVoice && enableAutoVoice && currentVoiceIdx === autoVoiceDataIdx) {
-                                            let spliter = content.match(/\.|\?|!|。|？|！/);
-                                            if (spliter) {
-                                                let voiceText = progressData.slice(autoVoiceIdx) + content.slice(0, spliter.index + 1);
-                                                autoVoiceIdx += voiceText.length;
-                                                autoSpeechEvent(voiceText, currentResEle);
-                                            }
+                                            let voiceText = longReplyFlag ? "" : progressData.slice(autoVoiceIdx), stop = !longReplyFlag;
+                                            autoSpeechEvent(voiceText, currentResEle, false, stop);
                                         }
-                                        if (progressData) await delay();
-                                        progressData += content;
-                                        currentResEle.children[0].innerHTML = md.render(progressData);
-                                        if (!isRefresh) {
-                                            scrollToBottom();
+                                        break;
+                                    } else {
+                                        let content = payload.choices[0].delta.content;
+                                        if (content) {
+                                            if (!progressData && !content.trim()) continue;
+                                            if (existVoice && enableAutoVoice && currentVoiceIdx === autoVoiceDataIdx) {
+                                                let spliter = content.match(/\.|\?|!|。|？|！/);
+                                                if (spliter) {
+                                                    let voiceText = progressData.slice(autoVoiceIdx) + content.slice(0, spliter.index + 1);
+                                                    autoVoiceIdx += voiceText.length;
+                                                    autoSpeechEvent(voiceText, currentResEle);
+                                                }
+                                            }
+                                            if (progressData) await delay();
+                                            progressData += content;
+                                            currentResEle.children[0].innerHTML = md.render(progressData);
+                                            if (!isRefresh) {
+                                                scrollToBottom();
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        return readChunk();
-                    } else {
-                        if (isRefresh) {
-                            data[refreshIdx].content = progressData;
-                            if (longReplyFlag) return streamGen(true);
+                            return readChunk();
                         } else {
-                            if (long) {data[data.length - 1].content = progressData}
-                            else {data.push({role: "assistant", content: progressData})}
-                            if (longReplyFlag) return streamGen(true);
+                            if (isRefresh) {
+                                data[refreshIdx].content = progressData;
+                                if (longReplyFlag) return streamGen(true);
+                            } else {
+                                if (long) {data[data.length - 1].content = progressData}
+                                else {data.push({role: "assistant", content: progressData})}
+                                if (longReplyFlag) return streamGen(true);
+                            }
+                            stopLoading(false);
                         }
-                        stopLoading(false);
-                    }
-                });
-            };
-            await readChunk();
+                    });
+                };
+                await readChunk();
+            } catch (e) {
+                if (e.message.indexOf("aborted") === -1) {
+                    notyf.error("访问接口失败，请检查接口！")
+                }
+                stopLoading();
+            }
         };
         const loadAction = (bool) => {
             loading = bool;
             sendBtnEle.disabled = bool;
             sendBtnEle.className = bool ? " loading" : "loaded";
             stopEle.style.display = bool ? "flex" : "none";
+            textInputEvent();
         }
         const stopLoading = (abort = true) => {
             stopEle.style.display = "none";
@@ -3485,6 +3519,9 @@
             requestEle.children[0].innerHTML = md.render(message);
             data.push({role: "user", content: message});
             if (chatsData[activeChatIdx].name === "新的会话") {
+                if (message.length > 50) {
+                    message = message.slice(0, 47) + "...";
+                }
                 chatsData[activeChatIdx].name = message;
                 chatListEle.children[activeChatIdx].children[1].textContent = message;
             }
