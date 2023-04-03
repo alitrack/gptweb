@@ -79,3 +79,4 @@ You can control the website through environment variables.
 | --- | --- | --- |
 | `OPENAI_API_KEY` | 你的OPENAI API Key | `null` |
 | `SITE_PASSWORD` | 网站密码. 如果不设置，任何人可以访问 | `null` |
+| `ALLOWED_ORIGIN` | 允许的 Origin 列表，支持通配符 | `null` |
